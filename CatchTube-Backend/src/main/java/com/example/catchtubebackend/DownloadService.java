@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/catchtube")
@@ -19,7 +20,7 @@ public class DownloadService {
     private String DOWNLOAD_DIR = "downloads/";
 
     @GetMapping("/download")
-    public ResponseEntity<String> hello(@RequestParam String url) {
+    public ResponseEntity hello(@RequestParam String url) {
         try {
             Files.createDirectories(Path.of(DOWNLOAD_DIR));
             String command = String.format("yt-dlp -o %s%%(title)s.%%(ext)s %s", DOWNLOAD_DIR, url);
@@ -43,7 +44,13 @@ public class DownloadService {
                 }
                 file.renameTo(modifiedFile);
                 String retFileLink = String.format("http://localhost:8080/api/catchtube/file/%s", modifiedFileName);
-                return ResponseEntity.ok(retFileLink);
+//                return ResponseEntity.ok(Map.of("fileName", modifiedFileName, "downloadLink", retFileLink));
+                return ResponseEntity.ok(
+                        Map.of(
+                                "fileName", originalFileName,
+                                "downloadUrl", retFileLink
+                        )
+                );
 //                return ResponseEntity.ok("Click here to download the file: <a href=" + retFileLink + ">" + originalFileName + "</a>");
 //                return ResponseEntity.ok(retFileLink + originalFileName);
             }
@@ -58,7 +65,7 @@ public class DownloadService {
     public ResponseEntity serveFile(@PathVariable String fileName) {
         try {
             File file = new File(DOWNLOAD_DIR + fileName);
-            String currentDirectory =  file.getAbsolutePath();
+            String currentDirectory = file.getAbsolutePath();
             if (!fileName.matches("[a-zA-Z0-9._-]+")) {
                 return ResponseEntity.status(404).body("Invalid file name");
             }
@@ -71,5 +78,28 @@ public class DownloadService {
             return ResponseEntity.status(500).body("Error occured " + exception);
         }
         return ResponseEntity.ok("Okay");
+    }
+
+    @PostMapping("/deleteDownloads")
+    public ResponseEntity<?> removeDownloads() {
+
+        File folder = new File("downloads");
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (File file : files)
+                file.delete();
+            if (files.length <= 0)
+                return ResponseEntity.ok().body(Map.of("message", "Files are deleted successfully"));
+        }
+        return ResponseEntity.status(404).body(Map.of("message", "No files to delete"));
+    }
+
+    @PostMapping("/deleteFile")
+    public ResponseEntity<?> removeDownloads(@RequestBody Map<String, String> payload) {
+        System.out.println(payload);
+
+        File file = new File(payload.get("path"));
+        file.delete();
+        return ResponseEntity.ok().body(Map.of("message", "Files are deleted successfully"));
     }
 }
