@@ -8,12 +8,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 @RestController
 @RequestMapping("/api/catchtube")
-public class Test {
+@CrossOrigin(origins = "*")
+public class DownloadService {
     private String DOWNLOAD_DIR = "downloads/";
 
     @GetMapping("/download")
@@ -41,7 +43,9 @@ public class Test {
                 }
                 file.renameTo(modifiedFile);
                 String retFileLink = String.format("http://localhost:8080/api/catchtube/file/%s", modifiedFileName);
-                return ResponseEntity.ok("Click here to download the file: <a href=" + retFileLink + ">" + originalFileName + "</a>");
+                return ResponseEntity.ok(retFileLink);
+//                return ResponseEntity.ok("Click here to download the file: <a href=" + retFileLink + ">" + originalFileName + "</a>");
+//                return ResponseEntity.ok(retFileLink + originalFileName);
             }
             return ResponseEntity.status(404).body("Error: video is not downloaded");
         } catch (IOException | InterruptedException interruptedException) {
@@ -54,12 +58,14 @@ public class Test {
     public ResponseEntity serveFile(@PathVariable String fileName) {
         try {
             File file = new File(DOWNLOAD_DIR + fileName);
+            String currentDirectory =  file.getAbsolutePath();
             if (!fileName.matches("[a-zA-Z0-9._-]+")) {
                 return ResponseEntity.status(404).body("Invalid file name");
             }
             if (file.exists()) {
                 Resource resource = new FileSystemResource(file);
-                return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename=\""+file.getName()+"\"").body(resource);
+                return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"").body(resource);
+//                return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"").body(resource);
             }
         } catch (Exception exception) {
             return ResponseEntity.status(500).body("Error occured " + exception);
